@@ -1,3 +1,5 @@
+from typing import Optional
+
 from main import bot
 from config import ref_url
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, \
@@ -15,9 +17,6 @@ def is_authenticated(msg):
         return False
 
 
-
-
-
 def user_id_registration(tg_id, tg_username):
     cursor.execute(f"SELECT telegram_id, username FROM users_users WHERE telegram_id={tg_id};")
     telegram_user_id = cursor.fetchone()
@@ -31,3 +30,14 @@ def user_id_registration(tg_id, tg_username):
         cursor.execute(f"Update users_users set checking = {True}, username = '{tg_username}' where telegram_id = {tg_id}")
         connection.commit()
     return None
+
+
+def user_confirm_registration(user_dict, callback_query, yonalish):
+    user_id = callback_query.data.replace(yonalish, '')
+    user = user_dict[int(user_id)]
+    user.yonalish = yonalish.replace("_", "")
+    print(user.rasm_id, "RASM ID")
+    cursor.execute(f"UPDATE users_users SET user_fullname='{user.ism}', "
+                   f"user_photo='{user.rasm_id}', "
+                   f"user_yonalish='{user.yonalish}' "
+                   f"WHERE telegram_id = {user_id};")

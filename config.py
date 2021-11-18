@@ -3,7 +3,7 @@ import datetime
 
 from configparser import ConfigParser
 
-TOKEN = "2020786505:AAF1lZXaBhPh-Nkj1TQJfMR4CQRjZV9IsKA"
+TOKEN = "2078942594:AAFzEOk4Z3vNdCyM60tU_-IECyGE3GGT44g"
 
 formatter = '[%(asctime)s] %(levelname)8s --- %(message)s (%(filename)s:%(lineno)s)'
 logging.basicConfig(
@@ -18,6 +18,14 @@ logging.basicConfig(
 
 ref_url = 'vodiylik'
 group_id = -1001145839692
+
+all_content_types = ["text", "audio", "photo", "sticker",
+                     "video", "video_note", "voice", "location",
+                     "contact", "new_chat_members", "left_chat_member",
+                     "new_chat_title", "new_chat_photo", "delete_chat_photo",
+                     "group_chat_created", "supergroup_chat_created",
+                     "channel_chat_created", "migrate_to_chat_id",
+                     "migrate_from_chat_id", "pinned_message"]
 
 
 def config(filename='database.ini', section='postgresql'):
