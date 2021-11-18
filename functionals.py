@@ -12,15 +12,7 @@ def is_authenticated(msg):
         else:
             raise("Ne avtorizovan")
     except Exception as ex:
-        text = "Kanalga a'zo bo'lish majburiy!"
-        keyboard = InlineKeyboardMarkup(row_width=1)
-        keyboard.add(InlineKeyboardButton(
-            text="1-chi kanal",
-            url=f"https://t.me/{ref_url}"))
-        keyboard.add(InlineKeyboardButton(
-            text="A'zo bo'ldim✅",
-            callback_data="channel_kino"))
-        bot.send_message(msg.from_user.id, text, reply_markup=keyboard)
+        return False
 
 
 

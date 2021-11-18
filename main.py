@@ -34,6 +34,15 @@ def channel_affirmative_kino(callback_query: CallbackQuery):
     if is_authenticated(callback_query):
         send_welcome_homepage(callback_query)
     else:
+        text = "Kanalga a'zo bo'lish majburiy!"
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(InlineKeyboardButton(
+            text="1-chi kanal",
+            url=f"https://t.me/{ref_url}"))
+        keyboard.add(InlineKeyboardButton(
+            text="A'zo bo'ldim✅",
+            callback_data="channel_kino"))
+        bot.send_message(callback_query.from_user.id, text, reply_markup=keyboard)
         bot.answer_callback_query(callback_query_id=callback_query.id, show_alert=True, text="A'zo bo'lmadingiz!")
 
 
