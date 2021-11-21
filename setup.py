@@ -21,21 +21,37 @@ def create_database():
         return e
 
 
+def create_yonalish_table():
+    cursor.execute("CREATE TABLE IF NOT EXISTS users_yonalish "
+                   "(id smallserial, "
+                   "name character varying(15),"
+                   "PRIMARY KEY (id));")
+    return True
+
+
+def insert_data_to_yonalish_table():
+    cursor.execute("INSERT INTO users_yonalish (name) VALUES ('Qizlar');")
+    cursor.execute("INSERT INTO users_yonalish (name) VALUES ('Yigitlar');")
+    cursor.execute("INSERT INTO users_yonalish (name) VALUES ('Farqi yoʻq');")
+
+
 def create_tables():
-    print("YES")
-    x = cursor.execute("CREATE TABLE users_users "
-                       "(id bigserial NOT NULL, "
-                       "telegram_id bigint NOT NULL, "
-                       "username character varying(255), "
-                       "checking boolean, "
-                       "user_fullname character varying(255), "
-                       "user_photo character varying(255), "
-                       "user_yonalish character varying(15), "
-                       "PRIMARY KEY (id)); ")
-    return x
+    cursor.execute("CREATE TABLE users_users "
+                   "(id bigserial NOT NULL, "
+                   "telegram_id bigint NOT NULL, "
+                   "username character varying(255), "
+                   "checking boolean, "
+                   "user_fullname character varying(255), "
+                   "user_photo character varying(255), "
+                   "user_yonalish numeric(1), "
+                   "PRIMARY KEY (id), "
+                   "CONSTRAINT fk_yonalish FOREIGN KEY (user_yonalish) "
+                   "REFERENCES users_yonalish (id) MATCH SIMPLE "
+                   "ON UPDATE CASCADE "
+                   "ON DELETE CASCADE);")
+    return True
 
 
 if __name__ == '__main__':
     # create_database()
     create_tables()
-
