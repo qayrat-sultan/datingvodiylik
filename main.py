@@ -29,15 +29,7 @@ def send_welcome_registration(message):
             bot.send_message(message.from_user.id, "Tez kunda chat ishlaydi",
                              reply_markup=ReplyKeyboardRemove())
     else:
-        text = "Kanalga a'zo bo'lish majburiy!"
-        keyboard = InlineKeyboardMarkup(row_width=1)
-        keyboard.add(InlineKeyboardButton(
-            text="1-chi kanal",
-            url=f"https://t.me/{ref_url}"))
-        keyboard.add(InlineKeyboardButton(
-            text="A'zo bo'ldim✅",
-            callback_data="channel_subscribe"))
-        bot.send_message(message.from_user.id, text, reply_markup=keyboard)
+        following_channel(message)
 
 
 @bot.callback_query_handler(lambda call: call.data == 'channel_subscribe')

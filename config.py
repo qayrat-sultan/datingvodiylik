@@ -3,7 +3,7 @@ import datetime
 
 from configparser import ConfigParser
 
-TOKEN = "PASTE TOKEN"
+TOKEN = "2078942594:AAFzEOk4Z3vNdCyM60tU_-IECyGE3GGT44g"
 
 formatter = '[%(asctime)s] %(levelname)8s --- %(message)s (%(filename)s:%(lineno)s)'
 logging.basicConfig(
