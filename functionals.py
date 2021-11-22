@@ -2,11 +2,11 @@ import datetime
 
 from constants import get_yonalish
 from main import bot
-from config import REF_URL
+from config import REF_URL, SUBSCRIBE_CHANNELS
 from db import connection, cursor
 
-from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup,\
-    InlineKeyboardButton
+from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, \
+    InlineKeyboardButton, InputMediaPhoto
 
 user_dict = {}
 
@@ -34,9 +34,10 @@ def is_authenticated(msg):
 def following_channel(message):
     text = "Kanalga a'zo bo'lish majburiy!"
     keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton(
-        text="1-chi kanal",
-        url=f"https://t.me/{ref_url}"))
+    for num, i in enumerate(SUBSCRIBE_CHANNELS):
+        keyboard.add(InlineKeyboardButton(
+            text=f"{str(num+1)}-chi kanal",
+            url=f"https://t.me/{REF_URL}"))
     keyboard.add(InlineKeyboardButton(
         text="A'zo bo'ldim✅",
         callback_data="channel_subscribe"))
@@ -44,20 +45,40 @@ def following_channel(message):
 
 
 def user_id_registration(tg_id, tg_username):
-    cursor.execute(f"SELECT telegram_id, username FROM users_users WHERE telegram_id={tg_id};")
-    telegram_user_id = cursor.fetchone()
-    if not telegram_user_id:
-        sql = "INSERT INTO users_users (telegram_id, username, checking) " \
-              "VALUES (%s,%s,%s);"
-        sql_insert = (tg_id, tg_username, True)
-        cursor.execute(sql, sql_insert)
-        connection.commit()
-        return tg_username
-    else:
-        cursor.execute(f"Update users_users set checking = {True}, "
-                       f"username = '{tg_username}' where telegram_id = {tg_id}")
-        connection.commit()
-    return None
+    try:
+        cursor.execute(f"SELECT telegram_id, username FROM users_users WHERE telegram_id={tg_id};")
+        telegram_user_id = cursor.fetchone()
+        if not telegram_user_id:
+            sql = "INSERT INTO users_users (telegram_id, username, checking) " \
+                  "VALUES (%s,%s,%s);"
+            sql_insert = (tg_id, tg_username, True)
+            cursor.execute(sql, sql_insert)
+            connection.commit()
+            return tg_username
+        else:
+            cursor.execute(f"Update users_users set checking = {True}, "
+                           f"username = '{tg_username}' where telegram_id = {tg_id}")
+            connection.commit()
+        return None
+    except:
+        return None
+
+
+def gettin_chatting_user_photo(tg_id):
+    cursor.execute(f"SELECT user_photo FROM users_users WHERE telegram_id={tg_id}")
+    photo = cursor.fetchone()
+    return photo[0]
+
+
+def chatting_user(callback):
+    tg_id = callback.data.replace("chatting_", "")
+    profile_photo = gettin_chatting_user_photo(tg_id)
+    text = "XABARINGIZNI YOZING"
+    bot.edit_message_media(media=InputMediaPhoto(media=profile_photo, caption=text),
+                           chat_id=callback.from_user.id,
+                           message_id=callback.message.id,
+                           reply_markup=None)
+    return True
 
 
 def user_confirm_registration(user_obj, callback):
@@ -86,3 +107,35 @@ def is_none_data_user(tg_id):
                    f"users_users WHERE telegram_id={tg_id};")
     x = cursor.fetchone()
     return not all(x)
+
+
+def get_random_user_info(msg):
+    tg_user_id = msg.from_user.id
+    cursor.execute(f"SELECT user_yonalish "
+                   f"FROM users_users "
+                   f"WHERE telegram_id={tg_user_id};")
+    user_yonalish_info = cursor.fetchone()
+    print(user_yonalish_info[0], "YONALISH INFO")
+    yonalish = get_yonalish(user_yonalish_info[0])
+    print(yonalish, "YONALISH")
+
+    if yonalish == "Qizlar":
+        cursor.execute(f"SELECT telegram_id, user_fullname, "
+                       f"user_photo, gender FROM users_users "
+                       f"WHERE gender=1 AND checking=TRUE;")
+        odam = cursor.fetchone()
+        return odam
+    elif yonalish == "Yigitlar":
+        cursor.execute(f"SELECT telegram_id, user_fullname, "
+                       f"user_photo, gender FROM users_users "
+                       f"WHERE gender=2 AND checking=TRUE;")
+        odam = cursor.fetchone()
+        return odam
+    else:
+        cursor.execute(f"SELECT telegram_id, user_fullname, "
+                       f"user_photo, gender FROM users_users "
+                       f"WHERE checking=TRUE "
+                       f"ORDER BY random() LIMIT 1;")
+        odam = cursor.fetchone()
+        return odam
+

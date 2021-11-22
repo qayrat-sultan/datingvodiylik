@@ -7,7 +7,7 @@ from environs import Env
 env = Env()
 env.read_env()
 
-
+SUBSCRIBE_CHANNELS = "vodiylik",
 TOKEN = env.str("BOT_TOKEN")
 REF_URL = env.str("REF_URL")
 GROUP_ID = env.int("GROUP_ID")

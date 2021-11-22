@@ -2,6 +2,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery, ReplyKeyboardMarkup
 from config import TOKEN, GROUP_ID, ALL_CONTENT_TYPES
+from constants import get_gender
 from functionals import *
 
 bot = telebot.TeleBot(TOKEN)
@@ -105,18 +106,31 @@ def reg_data_callback(callback: CallbackQuery):
     user_confirm_registration(user_dict[callback.from_user.id], callback)
 
 
+@bot.callback_query_handler(lambda call: call.data.startswith('chatting_'))
+def reg_data_callback(callback: CallbackQuery):
+    chatting_user(callback)
+
+
 @bot.message_handler(commands=["chat"])
 def start_chatting(message):
-    print(message)
+    data = get_random_user_info(message)
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(InlineKeyboardButton(
+        text="Xabar yozish",
+        callback_data=f"chatting_{data[0]}"
+    ))
+    bot.send_photo(message.from_user.id, data[2], f"Ismi: {data[1]}\n"
+                                                  f"Jinsi: {get_gender(data[3])}",
+                   reply_markup=keyboard)
 
 
 @bot.message_handler(commands=["stop"])
-def start_chatting(message):
+def stop_chatting(message):
     print(message)
 
 
 @bot.message_handler(commands=["next"])
-def start_chatting(message):
+def next_chatting(message):
     print(message)
 
 
@@ -138,19 +152,11 @@ def send_welcome_registration(message):
             bot.send_message(message.from_user.id, text,
                              reply_markup=keyboard)
         else:
-            # TODO NEED PASTE CHATING FUNCTION
+            # TODO NEED PASTE CHATTING FUNCTION
             bot.send_message(message.from_user.id, "Tez kunda chat ishlaydi",
                              reply_markup=ReplyKeyboardRemove())
     else:
-        text = "Kanalga a'zo bo'lish majburiy!"
-        keyboard = InlineKeyboardMarkup(row_width=1)
-        keyboard.add(InlineKeyboardButton(
-            text="1-chi kanal",
-            url=f"https://t.me/{REF_URL}"))
-        keyboard.add(InlineKeyboardButton(
-            text="A'zo bo'ldim✅",
-            callback_data="channel_subscribe"))
-        bot.send_message(message.from_user.id, text, reply_markup=keyboard)
+        following_channel(message)
 
 
 if __name__ == '__main__':

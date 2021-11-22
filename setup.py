@@ -47,6 +47,7 @@ def create_tables():
                    "user_photo character varying(255), "
                    "user_yonalish numeric(1), "
                    "created_at timestamp without time zone, "
+                   "gender numeric(1), "
                    "PRIMARY KEY (id), "
                    "CONSTRAINT fk_yonalish FOREIGN KEY (user_yonalish) "
                    "REFERENCES users_yonalish (id) MATCH SIMPLE "
