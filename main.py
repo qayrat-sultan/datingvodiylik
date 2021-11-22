@@ -1,19 +1,19 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery, ReplyKeyboardMarkup
-from config import TOKEN, group_id, all_content_types
+from config import TOKEN, GROUP_ID, ALL_CONTENT_TYPES
 from functionals import *
 
 bot = telebot.TeleBot(TOKEN)
 
 
-@bot.message_handler(content_types=all_content_types)
+@bot.message_handler(content_types=ALL_CONTENT_TYPES)
 def send_welcome_registration(message):
     print("START", message.from_user.username)
     x = user_id_registration(message.from_user.id, message.from_user.username)
     if x:
-        bot.forward_message(group_id, message.from_user.id, message.id)
-        bot.send_message(group_id, f"Ushbu: @{x} botga qo'shildi")
+        bot.forward_message(GROUP_ID, message.from_user.id, message.id)
+        bot.send_message(GROUP_ID, f"Ushbu: @{x} botga qo'shildi")
 
     if is_authenticated(message):
         if is_none_data_user(message.from_user.id):
@@ -33,7 +33,7 @@ def send_welcome_registration(message):
         keyboard = InlineKeyboardMarkup(row_width=1)
         keyboard.add(InlineKeyboardButton(
             text="1-chi kanal",
-            url=f"https://t.me/{ref_url}"))
+            url=f"https://t.me/{REF_URL}"))
         keyboard.add(InlineKeyboardButton(
             text="A'zo bo'ldim✅",
             callback_data="channel_subscribe"))

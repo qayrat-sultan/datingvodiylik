@@ -1,5 +1,5 @@
 from main import bot
-from config import ref_url
+from config import REF_URL
 from db import connection, cursor
 
 from telebot.types import ReplyKeyboardRemove
@@ -17,7 +17,7 @@ class Usr:
 
 def is_authenticated(msg):
     try:
-        if bot.get_chat_member(f'@{ref_url}', user_id=msg.from_user.id).status in \
+        if bot.get_chat_member(f'@{REF_URL}', user_id=msg.from_user.id).status in \
                 ('member', 'administrator', 'creator'):
             return True
         else:

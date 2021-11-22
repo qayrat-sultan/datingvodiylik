@@ -2,8 +2,21 @@ import logging
 import datetime
 
 from configparser import ConfigParser
+from environs import Env
 
-TOKEN = "PASTE TOKEN"
+env = Env()
+env.read_env()
+
+
+TOKEN = env.str("BOT_TOKEN")
+REF_URL = env.str("REF_URL")
+GROUP_ID = env.int("GROUP_ID")
+DB_USER = env.str("DB_USER")
+DB_PASSWORD = env.str("DB_PASSWORD")
+DB_HOST = env.str("DB_HOST")
+DB_PORT = env.str("DB_PORT")
+DB_DATABASE = env.str("DB_DATABASE")
+
 
 formatter = '[%(asctime)s] %(levelname)8s --- %(message)s (%(filename)s:%(lineno)s)'
 logging.basicConfig(
@@ -14,12 +27,8 @@ logging.basicConfig(
     level=logging.WARNING
 )
 
-# TOKEN = os.environ.get("token")
 
-ref_url = 'vodiylik'
-group_id = -1001145839692
-
-all_content_types = ["text", "audio", "photo", "sticker",
+ALL_CONTENT_TYPES = ["text", "audio", "photo", "sticker",
                      "video", "video_note", "voice", "location",
                      "contact", "new_chat_members", "left_chat_member",
                      "new_chat_title", "new_chat_photo", "delete_chat_photo",
