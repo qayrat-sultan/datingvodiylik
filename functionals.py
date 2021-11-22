@@ -5,7 +5,8 @@ from main import bot
 from config import REF_URL
 from db import connection, cursor
 
-from telebot.types import ReplyKeyboardRemove
+from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup,\
+    InlineKeyboardButton
 
 user_dict = {}
 
@@ -28,6 +29,18 @@ def is_authenticated(msg):
     except Exception as ex:
         print(ex)
         return False
+
+
+def following_channel(message):
+    text = "Kanalga a'zo bo'lish majburiy!"
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(InlineKeyboardButton(
+        text="1-chi kanal",
+        url=f"https://t.me/{ref_url}"))
+    keyboard.add(InlineKeyboardButton(
+        text="A'zo bo'ldim✅",
+        callback_data="channel_subscribe"))
+    bot.send_message(message.from_user.id, text, reply_markup=keyboard)
 
 
 def user_id_registration(tg_id, tg_username):
