@@ -1,3 +1,6 @@
+import datetime
+
+from constants import get_yonalish
 from main import bot
 from config import REF_URL
 from db import connection, cursor
@@ -46,9 +49,14 @@ def user_id_registration(tg_id, tg_username):
 
 def user_confirm_registration(user_obj, callback):
     user_obj.yonalish = int(callback.data.replace("finding_", ""))
-    cursor.execute(f"UPDATE users_users SET user_fullname='{user_obj.ism}', "
+    timestamp = callback.message.date
+    created_at = datetime.datetime.utcfromtimestamp(timestamp)
+    cursor.execute(f"UPDATE users_users SET username='{callback.from_user.username}', "
+                   "checking=TRUE, "
+                   f"user_fullname='{user_obj.ism}', "
                    f"user_photo='{user_obj.rasm_id}', "
-                   f"user_yonalish={user_obj.yonalish} "
+                   f"user_yonalish={user_obj.yonalish}, "
+                   f"created_at='{created_at}' "
                    f"WHERE telegram_id = {user_obj.user_id};")
     bot.clear_step_handler_by_chat_id(user_obj.user_id)
     bot.edit_message_text(chat_id=user_obj.user_id, message_id=callback.message.id,
@@ -56,7 +64,7 @@ def user_confirm_registration(user_obj, callback):
                           reply_markup=None)
     bot.send_photo(user_obj.user_id, user_obj.rasm_id,
                    f"Ismi: {user_obj.ism},\n"
-                   f"Tanishuv: {user_obj.yonalish}",
+                   f"Tanishuv: {get_yonalish(user_obj.yonalish)}",
                    reply_markup=ReplyKeyboardRemove())
 
 

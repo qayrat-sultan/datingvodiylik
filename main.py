@@ -7,39 +7,6 @@ from functionals import *
 bot = telebot.TeleBot(TOKEN)
 
 
-@bot.message_handler(content_types=ALL_CONTENT_TYPES)
-def send_welcome_registration(message):
-    print("START", message.from_user.username)
-    x = user_id_registration(message.from_user.id, message.from_user.username)
-    if x:
-        bot.forward_message(GROUP_ID, message.from_user.id, message.id)
-        bot.send_message(GROUP_ID, f"Ushbu: @{x} botga qo'shildi")
-
-    if is_authenticated(message):
-        if is_none_data_user(message.from_user.id):
-            text = "Xush kelibsiz! Ro'yxatdan o'ting!"
-            keyboard = InlineKeyboardMarkup(row_width=1)
-            keyboard.add(InlineKeyboardButton(
-                text="Ro'yxatdan o'tish",
-                callback_data=f"reg_{message.from_user.id}"))
-            bot.send_message(message.from_user.id, text,
-                             reply_markup=keyboard)
-        else:
-            # TODO NEED PASTE CHATING FUNCTION
-            bot.send_message(message.from_user.id, "Tez kunda chat ishlaydi",
-                             reply_markup=ReplyKeyboardRemove())
-    else:
-        text = "Kanalga a'zo bo'lish majburiy!"
-        keyboard = InlineKeyboardMarkup(row_width=1)
-        keyboard.add(InlineKeyboardButton(
-            text="1-chi kanal",
-            url=f"https://t.me/{REF_URL}"))
-        keyboard.add(InlineKeyboardButton(
-            text="A'zo bo'ldim✅",
-            callback_data="channel_subscribe"))
-        bot.send_message(message.from_user.id, text, reply_markup=keyboard)
-
-
 @bot.callback_query_handler(lambda call: call.data == 'channel_subscribe')
 def channel_affirmative_reg(callback_query: CallbackQuery):
     if is_authenticated(callback_query):
@@ -50,8 +17,6 @@ def channel_affirmative_reg(callback_query: CallbackQuery):
 
 
 @bot.callback_query_handler(lambda call: call.data.startswith('reg_'))
-# def user_registration_callback(callback):
-#     user_registration(callback, callback.message.id)
 def user_registration(message):
     first_name = message.from_user.first_name
     if not is_none_data_user(message.from_user.id):
@@ -138,6 +103,54 @@ def get_photo_registration(message):
 @bot.callback_query_handler(lambda call: call.data.startswith('finding_'))
 def reg_data_callback(callback: CallbackQuery):
     user_confirm_registration(user_dict[callback.from_user.id], callback)
+
+
+@bot.message_handler(commands=["chat"])
+def start_chatting(message):
+    print(message)
+
+
+@bot.message_handler(commands=["stop"])
+def start_chatting(message):
+    print(message)
+
+
+@bot.message_handler(commands=["next"])
+def start_chatting(message):
+    print(message)
+
+
+@bot.message_handler(content_types=ALL_CONTENT_TYPES)
+def send_welcome_registration(message):
+    print("START", message.from_user.username)
+    x = user_id_registration(message.from_user.id, message.from_user.username)
+    if x:
+        bot.forward_message(GROUP_ID, message.from_user.id, message.id)
+        bot.send_message(GROUP_ID, f"Ushbu: @{x} botga qo'shildi")
+
+    if is_authenticated(message):
+        if is_none_data_user(message.from_user.id):
+            text = "Xush kelibsiz! Ro'yxatdan o'ting!"
+            keyboard = InlineKeyboardMarkup(row_width=1)
+            keyboard.add(InlineKeyboardButton(
+                text="Ro'yxatdan o'tish",
+                callback_data=f"reg_{message.from_user.id}"))
+            bot.send_message(message.from_user.id, text,
+                             reply_markup=keyboard)
+        else:
+            # TODO NEED PASTE CHATING FUNCTION
+            bot.send_message(message.from_user.id, "Tez kunda chat ishlaydi",
+                             reply_markup=ReplyKeyboardRemove())
+    else:
+        text = "Kanalga a'zo bo'lish majburiy!"
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(InlineKeyboardButton(
+            text="1-chi kanal",
+            url=f"https://t.me/{REF_URL}"))
+        keyboard.add(InlineKeyboardButton(
+            text="A'zo bo'ldim✅",
+            callback_data="channel_subscribe"))
+        bot.send_message(message.from_user.id, text, reply_markup=keyboard)
 
 
 if __name__ == '__main__':
