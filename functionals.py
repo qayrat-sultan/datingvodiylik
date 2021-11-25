@@ -60,8 +60,8 @@ def user_id_registration(tg_id, tg_username):
                            f"username = '{tg_username}' where telegram_id = {tg_id}")
             connection.commit()
         return None
-    except:
-        return None
+    except Exception as e:
+        return e
 
 
 def gettin_chatting_user_photo(tg_id):
@@ -78,7 +78,26 @@ def chatting_user(callback):
                            chat_id=callback.from_user.id,
                            message_id=callback.message.id,
                            reply_markup=None)
-    return True
+    print("LEFT", callback.from_user.id, "RIGHT: ", tg_id)
+    confirm_chatting_user(callback.from_user.id, tg_id)
+
+
+def confirm_chatting_user(left_tg_id, right_tg_id):
+    print("left: ", left_tg_id, "right: ", right_tg_id)
+    cursor.execute("UPDATE users_chatting SET status=false "
+                   f"WHERE left_id={left_tg_id} or right_id={right_tg_id}")
+    cursor.execute("UPDATE users_users SET chatting=false "
+                   f"WHERE telegram_id={left_tg_id};")
+    cursor.execute("UPDATE users_users SET "
+                   f"chatting=true "
+                   f"WHERE telegram_id={left_tg_id};")
+    cursor.execute("UPDATE users_users SET "
+                   f"chatting=true "
+                   f"WHERE telegram_id={right_tg_id};")
+    cursor.execute("INSERT INTO users_chatting (left_id, right_id) "
+                   f"VALUES ({left_tg_id}, {right_tg_id}) RETURNING ID;")
+    x = cursor.fetchone()
+    print("AAAAAAAAAAA", x)
 
 
 def user_confirm_registration(user_obj, callback):
@@ -139,3 +158,51 @@ def get_random_user_info(msg):
         odam = cursor.fetchone()
         return odam
 
+
+def start_chatting_function(message):
+    timestamp = message.date
+    created_at = datetime.datetime.utcfromtimestamp(timestamp)
+    cursor.execute("INSERT INTO users_chats (left_user, created_at) "
+                   f"VALUES ({message.from_user.id}, '{created_at}');")
+
+
+def get_chatting_user_id(message):
+    bot.send_message(message.from_user.id, "Qidirilmoqda... Kuting")
+    cursor.execute("SELECT * FROM users_users WHERE chatting=FALSE and "
+                   f"telegram_id NOT IN ({message.from_user.id}) "
+                   "ORDER BY random();")
+    chat_id = cursor.fetchone()
+    print("GET_CHATTING_USER_ID ", chat_id)
+    return chat_id
+
+
+def get_active_chat_table(message):
+    cursor.execute("SELECT * FROM users_chats WHERE active=true and "
+                   f"(left_user={message.from_user.id} or right_user={message.from_user.id});")
+    chat_id = cursor.fetchone()
+
+    return chat_id
+
+
+def text_chatting_user_id(message):
+    cursor.execute("SELECT * FROM users_chatting WHERE "
+                   f"(left_id={message.from_user.id} or "
+                   f"right_id={message.from_user.id}) and "
+                   f"status=true;")
+    x = cursor.fetchone()
+    print(x)
+    if message.from_user.id == x[1]:
+        return x[2]
+    else:
+        return x[1]
+
+
+def clear_chatting_status(message):
+    user_id = message.from_user.id
+    cursor.execute("SELECT left_id, right_id FROM users_chatting WHERE "
+                   f"(left_id={user_id} or right_id={user_id}) and status=true")
+    ids = cursor.fetchone()
+    print(ids)
+    if ids:
+        cursor.execute("UPDATE users_users SET chatting=false "
+                       f"WHERE telegram_id={ids[0]} or telegram_id={ids[1]}")

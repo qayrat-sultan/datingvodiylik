@@ -57,7 +57,7 @@ def create_tables():
                    "(id serial NOT NULL, "
                    "left_user bigint, "
                    "right_user bigint, "
-                   "active boolean, "
+                   "active boolean DEFAULT false, "
                    "created_at timestamp without time zone, "
                    "PRIMARY KEY (id));")
     cursor.execute("CREATE TABLE IF NOT EXISTS users_temp "

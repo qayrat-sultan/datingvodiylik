@@ -126,12 +126,19 @@ def start_chatting(message):
 
 @bot.message_handler(commands=["stop"])
 def stop_chatting(message):
-    print(message)
+    clear_chatting_status(message)
 
 
 @bot.message_handler(commands=["next"])
 def next_chatting(message):
-    print(message)
+    clear_chatting_status(message)
+    chatting_user_id = get_chatting_user_id(message)
+    if not chatting_user_id:
+        print("EEEEEEEEEE")
+        start_chatting_function(message)
+    else:
+        confirm_chatting_user(message.from_user.id, chatting_user_id[1])
+        bot.send_message(message.from_user.id, "Topildi! Smsingizni yozing")
 
 
 @bot.message_handler(content_types=ALL_CONTENT_TYPES)
@@ -153,6 +160,11 @@ def send_welcome_registration(message):
                              reply_markup=keyboard)
         else:
             # TODO NEED PASTE CHATTING FUNCTION
+            chat_id = get_active_chat_table(message)
+            x = text_chatting_user_id(message)
+            bot.send_message(x, message.text)
+            if not chat_id:
+                bot.send_message(message.from_user.id, "Iltimos /next knopkasini bosing!")
             bot.send_message(message.from_user.id, "Tez kunda chat ishlaydi",
                              reply_markup=ReplyKeyboardRemove())
     else:
