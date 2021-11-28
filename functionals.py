@@ -1,22 +1,54 @@
 import datetime
+import logging
 
 from constants import get_yonalish
 from main import bot
 from config import REF_URL, SUBSCRIBE_CHANNELS
 from db import connection, cursor
 
-from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, \
-    InlineKeyboardButton, InputMediaPhoto
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-user_dict = {}
+# user_dict = {}
+#
+#
+# class Usr:
+#     def __init__(self, user_id):
+#         self.user_id = user_id
+#         self.ism = None
+#         self.rasm_id = None
+#         self.yonalish = None
 
 
-class Usr:
-    def __init__(self, user_id):
-        self.user_id = user_id
-        self.ism = None
-        self.rasm_id = None
-        self.yonalish = None
+group_to_process_method = {
+    "audio": bot.send_audio,
+    "sticker": bot.send_sticker,
+    "video": bot.send_video,
+    "voice": bot.send_voice,
+    "document": bot.send_document
+}
+
+
+def send_type_message(msg_user_id, json_dict: dict, content):
+    json_content = json_dict[content]
+    try:
+        if content == 'text':
+            bot.send_message(msg_user_id, json_content)
+        elif content == 'photo':
+            bot.send_photo(msg_user_id, json_content[-1]['file_id'])
+        elif content == 'location':
+            bot.send_location(msg_user_id, json_content['latitude'],
+                              json_content['longitude'])
+        elif content == 'contact':
+            bot.send_contact(msg_user_id, json_content['phone_number'],
+                             json_content['first_name'])
+        else:
+            group_to_process_method[content](msg_user_id, json_content['file_id'])
+    except Exception as e:
+        logging.info(f"USER WAS BLOKED BOT: {msg_user_id}. \n{e}")
+        cursor.execute("UPDATE users_users SET checking = False WHERE "
+                       f"telegram_id = {msg_user_id};")
+        cursor.execute("UPDATE users_chatting SET status = False WHERE "
+                       f"tg_id = {msg_user_id} or right_id = {msg_user_id}")
 
 
 def is_authenticated(msg):
@@ -36,7 +68,7 @@ def following_channel(message):
     keyboard = InlineKeyboardMarkup(row_width=1)
     for num, i in enumerate(SUBSCRIBE_CHANNELS):
         keyboard.add(InlineKeyboardButton(
-            text=f"{str(num+1)}-chi kanal",
+            text=f"{str(num + 1)}-chi kanal",
             url=f"https://t.me/{REF_URL}"))
     keyboard.add(InlineKeyboardButton(
         text="A'zo bo'ldim✅",
@@ -44,6 +76,7 @@ def following_channel(message):
     bot.send_message(message.from_user.id, text, reply_markup=keyboard)
 
 
+# noinspection PyBroadException
 def user_id_registration(tg_id, tg_username):
     try:
         cursor.execute(f"SELECT telegram_id, username FROM users_users WHERE telegram_id={tg_id};")
@@ -61,7 +94,8 @@ def user_id_registration(tg_id, tg_username):
             connection.commit()
         return None
     except Exception as e:
-        return e
+        logging.error(f"USER ID REGISTRATION FUNCTION DOESN'T WORK: {e}")
+        return None
 
 
 def gettin_chatting_user_photo(tg_id):
@@ -70,139 +104,106 @@ def gettin_chatting_user_photo(tg_id):
     return photo[0]
 
 
-def chatting_user(callback):
-    tg_id = callback.data.replace("chatting_", "")
-    profile_photo = gettin_chatting_user_photo(tg_id)
-    text = "XABARINGIZNI YOZING"
-    bot.edit_message_media(media=InputMediaPhoto(media=profile_photo, caption=text),
-                           chat_id=callback.from_user.id,
-                           message_id=callback.message.id,
-                           reply_markup=None)
-    print("LEFT", callback.from_user.id, "RIGHT: ", tg_id)
-    confirm_chatting_user(callback.from_user.id, tg_id)
+# def chatting_user(callback):
+#     tg_id = callback.data.replace("chatting_", "")
+#     profile_photo = gettin_chatting_user_photo(tg_id)
+#     text = "XABARINGIZNI YOZING"
+#     bot.edit_message_media(media=InputMediaPhoto(media=profile_photo, caption=text),
+#                            chat_id=callback.from_user.id,
+#                            message_id=callback.message.id,
+#                            reply_markup=None)
+#     confirm_chatting_user(callback.from_user.id, tg_id)
 
 
-def confirm_chatting_user(left_tg_id, right_tg_id):
-    print("left: ", left_tg_id, "right: ", right_tg_id)
-    cursor.execute("UPDATE users_chatting SET status=false "
-                   f"WHERE left_id={left_tg_id} or right_id={right_tg_id}")
-    cursor.execute("UPDATE users_users SET chatting=false "
-                   f"WHERE telegram_id={left_tg_id};")
-    cursor.execute("UPDATE users_users SET "
-                   f"chatting=true "
-                   f"WHERE telegram_id={left_tg_id};")
-    cursor.execute("UPDATE users_users SET "
-                   f"chatting=true "
-                   f"WHERE telegram_id={right_tg_id};")
-    cursor.execute("INSERT INTO users_chatting (left_id, right_id) "
-                   f"VALUES ({left_tg_id}, {right_tg_id}) RETURNING ID;")
-    x = cursor.fetchone()
-    print("AAAAAAAAAAA", x)
+def confirm_chatting_user(column_id, right_tg_id):
+    cursor.execute("UPDATE users_chatting SET "
+                   "status=true, "
+                   f"right_id={right_tg_id} WHERE id={column_id}")
 
 
-def user_confirm_registration(user_obj, callback):
-    user_obj.yonalish = int(callback.data.replace("finding_", ""))
+def user_confirm_registration(callback):
+    route = int(callback.data.replace("finding_", ""))
     timestamp = callback.message.date
     created_at = datetime.datetime.utcfromtimestamp(timestamp)
     cursor.execute(f"UPDATE users_users SET username='{callback.from_user.username}', "
                    "checking=TRUE, "
-                   f"user_fullname='{user_obj.ism}', "
-                   f"user_photo='{user_obj.rasm_id}', "
-                   f"user_yonalish={user_obj.yonalish}, "
+                   f"user_fullname='{callback.from_user.first_name} {callback.from_user.last_name}', "
+                   f"user_yonalish={route}, "
                    f"created_at='{created_at}' "
-                   f"WHERE telegram_id = {user_obj.user_id};")
-    bot.clear_step_handler_by_chat_id(user_obj.user_id)
-    bot.edit_message_text(chat_id=user_obj.user_id, message_id=callback.message.id,
-                          text="Muvaffaqiyatli ro'yxatdan o'tdingiz!",
+                   f"WHERE telegram_id = {callback.from_user.id};")
+    bot.edit_message_text(chat_id=callback.from_user.id, message_id=callback.message.id,
+                          text=f"Sizga qidiruvda {get_yonalish(route)}lar chiqadi",
                           reply_markup=None)
-    bot.send_photo(user_obj.user_id, user_obj.rasm_id,
-                   f"Ismi: {user_obj.ism},\n"
-                   f"Tanishuv: {get_yonalish(user_obj.yonalish)}",
-                   reply_markup=ReplyKeyboardRemove())
+    # bot.send_photo(user_obj.user_id, user_obj.rasm_id,
+    #                f"Ismi: {user_obj.ism},\n"
+    #                f"Tanishuv: {get_yonalish(user_obj.yonalish)}",
+    #                reply_markup=ReplyKeyboardRemove())
 
 
-def is_none_data_user(tg_id):
-    cursor.execute("SELECT user_fullname, user_photo, user_yonalish FROM "
+def have_data_user(tg_id):
+    cursor.execute("SELECT user_yonalish FROM "
                    f"users_users WHERE telegram_id={tg_id};")
     x = cursor.fetchone()
-    return not all(x)
-
-
-def get_random_user_info(msg):
-    tg_user_id = msg.from_user.id
-    cursor.execute(f"SELECT user_yonalish "
-                   f"FROM users_users "
-                   f"WHERE telegram_id={tg_user_id};")
-    user_yonalish_info = cursor.fetchone()
-    print(user_yonalish_info[0], "YONALISH INFO")
-    yonalish = get_yonalish(user_yonalish_info[0])
-    print(yonalish, "YONALISH")
-
-    if yonalish == "Qizlar":
-        cursor.execute(f"SELECT telegram_id, user_fullname, "
-                       f"user_photo, gender FROM users_users "
-                       f"WHERE gender=1 AND checking=TRUE;")
-        odam = cursor.fetchone()
-        return odam
-    elif yonalish == "Yigitlar":
-        cursor.execute(f"SELECT telegram_id, user_fullname, "
-                       f"user_photo, gender FROM users_users "
-                       f"WHERE gender=2 AND checking=TRUE;")
-        odam = cursor.fetchone()
-        return odam
-    else:
-        cursor.execute(f"SELECT telegram_id, user_fullname, "
-                       f"user_photo, gender FROM users_users "
-                       f"WHERE checking=TRUE "
-                       f"ORDER BY random() LIMIT 1;")
-        odam = cursor.fetchone()
-        return odam
+    return all(x)  # if one item in x[i]==None -> all(x) returning False
 
 
 def start_chatting_function(message):
-    timestamp = message.date
-    created_at = datetime.datetime.utcfromtimestamp(timestamp)
-    cursor.execute("INSERT INTO users_chats (left_user, created_at) "
-                   f"VALUES ({message.from_user.id}, '{created_at}');")
+    try:
+        cursor.execute("SELECT * FROM users_chatting WHERE "
+                       f"tg_id={message.from_user.id} and right_id IS NULL")
+        user_chatting = cursor.fetchone()
+        if not user_chatting:
+            tg_sex = get_user_gender(message.from_user.id)
+            print("THIS SEX: ", tg_sex)
+            cursor.execute("INSERT INTO users_chatting (tg_id, tg_sex) "
+                           f"VALUES ({message.from_user.id}, "
+                           f"{tg_sex if tg_sex is not None else 'NULL'}) RETURNING id;")
+            chatting_id = cursor.fetchone()
+            return chatting_id
+    except Exception as e:
+        logging.error(f"START CHATTING FUNCTION ERROR: {e}")
 
 
 def get_chatting_user_id(message):
-    bot.send_message(message.from_user.id, "Qidirilmoqda... Kuting")
-    cursor.execute("SELECT * FROM users_users WHERE chatting=FALSE and "
-                   f"telegram_id NOT IN ({message.from_user.id}) "
-                   "ORDER BY random();")
+    cursor.execute("SELECT * FROM users_chatting WHERE status=false "
+                   f"and right_id IS NULL and tg_id NOT IN ({message.from_user.id});")
     chat_id = cursor.fetchone()
-    print("GET_CHATTING_USER_ID ", chat_id)
+    print(chat_id)
     return chat_id
 
 
-def get_active_chat_table(message):
-    cursor.execute("SELECT * FROM users_chats WHERE active=true and "
-                   f"(left_user={message.from_user.id} or right_user={message.from_user.id});")
+def get_active_chat_in_table(message):
+    user_tg_id = message.from_user.id
+    cursor.execute("SELECT * FROM users_chatting WHERE status=true and "
+                   f"(tg_id={user_tg_id} or right_id={user_tg_id});")
     chat_id = cursor.fetchone()
-
     return chat_id
 
 
-def text_chatting_user_id(message):
-    cursor.execute("SELECT * FROM users_chatting WHERE "
-                   f"(left_id={message.from_user.id} or "
+def get_chatting_user_tg_id(message):
+    cursor.execute("SELECT tg_id, right_id FROM users_chatting WHERE "
+                   f"(tg_id={message.from_user.id} or "
                    f"right_id={message.from_user.id}) and "
                    f"status=true;")
-    x = cursor.fetchone()
-    print(x)
-    if message.from_user.id == x[1]:
-        return x[2]
-    else:
-        return x[1]
+    xs = cursor.fetchone()
+    if xs:
+        if message.from_user.id == xs[0]:
+            return xs[1]
+        else:
+            return xs[0]
+    return None
 
 
 def clear_chatting_status(message):
     user_id = message.from_user.id
-    cursor.execute("SELECT left_id, right_id FROM users_chatting WHERE "
-                   f"(left_id={user_id} or right_id={user_id}) and status=true")
+    cursor.execute("SELECT id, tg_id, right_id FROM users_chatting WHERE "
+                   f"(tg_id={user_id} or right_id={user_id}) and status=true")
     ids = cursor.fetchone()
-    print(ids)
     if ids:
-        cursor.execute("UPDATE users_users SET chatting=false "
-                       f"WHERE telegram_id={ids[0]} or telegram_id={ids[1]}")
+        cursor.execute(f"UPDATE users_chatting SET status=false WHERE id={ids[0]};")
+
+
+def get_user_gender(tg_id):
+    cursor.execute(f"SELECT gender FROM users_users WHERE telegram_id={tg_id}")
+    gender = cursor.fetchone()
+    return gender[0]
