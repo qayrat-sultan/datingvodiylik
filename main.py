@@ -1,6 +1,8 @@
+import time
+
 import telebot
-from telebot.types import CallbackQuery
-from config import ALL_CONTENT_TYPES, GROUP_ID, TOKEN
+from telebot.types import CallbackQuery, ReplyKeyboardRemove
+from config import ALL_CONTENT_TYPES, GROUP_ID, TOKEN, SEARCH_SLEEP_TIME
 from functionals import *
 
 bot = telebot.TeleBot(TOKEN)
@@ -8,7 +10,7 @@ bot = telebot.TeleBot(TOKEN)
 
 @bot.callback_query_handler(lambda call: call.data == 'channel_subscribe')
 def channel_affirmative_reg(callback_query: CallbackQuery):
-    if is_authenticated(callback_query):
+    if is_authorized(callback_query):
         send_welcome_registration(callback_query)
     else:
         bot.answer_callback_query(callback_query_id=callback_query.id,
@@ -130,17 +132,22 @@ def stop_chatting(message):
 @bot.message_handler(commands=["next"])
 def next_chatting(message):
     clear_chatting_status(message)
-    chatting_user_id = get_chatting_user_id(message)
+    bot.send_message(message.from_user.id,
+                     "Qidirilmoqda... Kuting")
+    chatting_user_id = get_chatting_user_is_existing(message)
+    time.sleep(SEARCH_SLEEP_TIME)
     if not chatting_user_id:
         chatting_doesnt_exists = start_chatting_function(message)
         if chatting_doesnt_exists:
-            bot.send_message(message.from_user.id, "Qidirilmoqda... Kuting")
-            bot.send_message(message.from_user.id, "Sizni navbatga qo'ydik! Navbatni kuting")
+            bot.send_message(message.from_user.id,
+                             "Sizni navbatga qo'ydik! Navbatni kuting")
         else:
-            bot.send_message(message.from_user.id, "Navbatga qo'yilgansiz!\nBiroz kuting!")
+            bot.send_message(message.from_user.id,
+                             "Navbatga qo'yilgansiz!\nBiroz kuting!")
     else:
         confirm_chatting_user(chatting_user_id[0], message.from_user.id)
-        bot.send_message(message.from_user.id, "Topildi! Smsingizni yozing")
+        bot.send_message(message.from_user.id,
+                         "Topildi! Smsingizni yozing")
 
 
 @bot.message_handler(commands=["start"])
@@ -150,12 +157,13 @@ def start_welcome_page(message):
 
 @bot.message_handler(content_types=ALL_CONTENT_TYPES)
 def send_welcome_registration(msg):
+    # try:
     x = user_id_registration(msg.from_user.id, msg.from_user.username)
     if x:
         bot.forward_message(GROUP_ID, msg.from_user.id, msg.id)
         bot.send_message(GROUP_ID, f"Ushbu: @{x} botga qo'shildi")
 
-    if is_authenticated(msg):
+    if is_authorized(msg):
         if not have_data_user(msg.from_user.id):
             keyboard = InlineKeyboardMarkup(row_width=2)
             keyboard.add(
@@ -169,18 +177,23 @@ def send_welcome_registration(msg):
                 text="Muhim emas",
                 callback_data=f"finding_3"))
             bot.send_message(msg.from_user.id,
-                             f"Salom {msg.from_user.first_name}, \nKimlar bilan tanishmoqchisiz?",
+                             f"Salom {msg.from_user.first_name}, \n"
+                             "Kimlar bilan tanishmoqchisiz?",
                              reply_markup=keyboard)
         else:
             chat_id = get_active_chat_in_table(msg)
+            if not chat_id:
+                bot.send_message(msg.from_user.id,
+                                 "Iltimos /next knopkasini bosing!",
+                                 reply_markup=ReplyKeyboardRemove())
             chatting_user_id = get_chatting_user_tg_id(msg)
             if chatting_user_id:
+                """ Send any type messages """
                 send_type_message(chatting_user_id, msg.json, msg.content_type)
-            if not chat_id:
-                bot.send_message(msg.from_user.id, "Iltimos /next knopkasini bosing!",
-                                 reply_markup=ReplyKeyboardRemove())
     else:
         following_channel(msg)
+    # except Exception as e:
+    #     logging.error(f"ERROR FROM send_welcome_registration as: {e}")
 
 
 if __name__ == '__main__':
