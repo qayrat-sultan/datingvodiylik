@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from constants import get_yonalish
+from constants import Sex, replace_values
 from main import bot
 from config import REF_URL, SUBSCRIBE_CHANNELS
 from db import connection, cursor
@@ -125,21 +125,51 @@ def confirm_chatting_user(column_id, right_tg_id):
 
 def user_confirm_registration(callback):
     route = int(callback.data.replace("finding_", ""))
+    sex_id = route
     timestamp = callback.message.date
+    full_name = f'{callback.from_user.first_name} {callback.from_user.last_name}'
     created_at = datetime.datetime.utcfromtimestamp(timestamp)
     cursor.execute(f"UPDATE users_users SET username='{callback.from_user.username}', "
                    "checking=TRUE, "
-                   f"user_fullname='{callback.from_user.first_name} {callback.from_user.last_name}', "
-                   f"user_yonalish={route}, "
+                   f"user_fullname="
+                   f"'{multiple_replace(full_name, replace_values)}', "
+                   f"user_yonalish={Sex(sex_id).value}, "
                    f"created_at='{created_at}' "
                    f"WHERE telegram_id = {callback.from_user.id};")
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton(
+            text="Qiz bola",
+            callback_data=f"gender_{Sex.GIRL.value}"),
+        InlineKeyboardButton(
+            text="O'g'il bola",
+            callback_data=f"gender_{Sex.BOY.value}")
+    )
+    keyboard.add(
+        InlineKeyboardButton(
+            text="Muhim emas",
+            callback_data=f"gender_{Sex.OTHER.value}")
+    )
     bot.edit_message_text(chat_id=callback.from_user.id, message_id=callback.message.id,
-                          text=f"Sizga qidiruvda {get_yonalish(route)}lar chiqadi",
-                          reply_markup=None)
+                          text=f"Jinsingiz?",
+                          reply_markup=keyboard)
     # bot.send_photo(user_obj.user_id, user_obj.rasm_id,
     #                f"Ismi: {user_obj.ism},\n"
     #                f"Tanishuv: {get_yonalish(user_obj.yonalish)}",
     #                reply_markup=ReplyKeyboardRemove())
+
+
+def user_confirm_gender(callback):
+    route = int(callback.data.replace("gender_", ""))
+    sex_id = route
+    cursor.execute(f"UPDATE users_users SET "
+                   f"gender={Sex(sex_id).value} "
+                   f"WHERE telegram_id = {callback.from_user.id} RETURNING user_yonalish;")
+    user_yonalish_id = cursor.fetchone()
+    bot.edit_message_text(chat_id=callback.from_user.id, message_id=callback.message.id,
+                          text=f"Qidiruvda: {Sex(user_yonalish_id[0]).name},\n"
+                               f"Jinsingiz: {Sex(sex_id).name}",
+                          reply_markup=None)
 
 
 def have_data_user(tg_id):
@@ -150,21 +180,38 @@ def have_data_user(tg_id):
 
 
 def start_chatting_function(message):
-    tg_sex = get_user_gender(message.from_user.id)
-    cursor.execute("INSERT INTO users_chatting (tg_id, tg_sex, tg_route) "
-                   f"VALUES ({message.from_user.id}, "
-                   f"{tg_sex if tg_sex is not None else 3}, (SELECT user_yonalish "
-                   f"FROM users_users WHERE telegram_id={message.from_user.id})) RETURNING id;")
-    chatting_id = cursor.fetchone()
-    return chatting_id
+    cursor.execute("SELECT id FROM users_chatting WHERE "
+                   f"tg_id={message.from_user.id} and right_id IS NULL")
+    user_chatting = cursor.fetchone()
+    if not user_chatting:
+        tg_sex = get_user_gender(message.from_user.id)
+        cursor.execute("INSERT INTO users_chatting (tg_id, tg_sex, tg_route) "
+                       f"VALUES ({message.from_user.id}, "
+                       f"{tg_sex if tg_sex is not None else 3}, (SELECT user_yonalish "
+                       f"FROM users_users WHERE telegram_id={message.from_user.id})) RETURNING id;")
+        chatting_id = cursor.fetchone()
+        return chatting_id
+    else:
+        return user_chatting[0]
     # except Exception as e:
     #     logging.error(f"START CHATTING FUNCTION ERROR: {e}")
 
 
+def get_user_info_from_tg_id(message):
+    user_tg_id = message.from_user.id
+    cursor.execute("SELECT user_yonalish, gender FROM users_users WHERE "
+                   f"telegram_id={user_tg_id};")
+    user_gender_info = cursor.fetchone()
+    return user_gender_info[0]
+
+
 def get_chatting_user_is_existing(message):
-    # TODO NEED SEARCH from gender
+    # TODO NEED refactor logic function finding gender
+    route, gender = get_user_info_from_tg_id(message)
     cursor.execute("SELECT * FROM users_chatting WHERE status=false "
-                   f"and right_id IS NULL and tg_id NOT IN ({message.from_user.id});")
+                   f"and right_id IS NULL and tg_id NOT IN ({message.from_user.id} )"
+                   f"and tg_sex={Sex(route).value} "
+                   f"and tg_route={Sex(gender).value};")
     chat_id = cursor.fetchone()
     return chat_id
 
@@ -204,3 +251,9 @@ def get_user_gender(tg_id):
     cursor.execute(f"SELECT gender FROM users_users WHERE telegram_id={tg_id}")
     gender = cursor.fetchone()
     return gender[0]
+
+
+def multiple_replace(target_str, replacing_values):
+    for i, j in replacing_values.items():
+        target_str = target_str.replace(i, j)
+    return target_str.replace("'", "ʼ")

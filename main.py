@@ -109,9 +109,9 @@ def reg_data_callback_finding(callback: CallbackQuery):
     user_confirm_registration(callback)
 
 
-# @bot.callback_query_handler(lambda call: call.data.startswith('chatting_'))
-# def reg_data_callback_chatting(callback: CallbackQuery):
-#     chatting_user(callback)
+@bot.callback_query_handler(lambda call: call.data.startswith('gender_'))
+def reg_data_callback_gender(callback: CallbackQuery):
+    user_confirm_gender(callback)
 
 
 @bot.message_handler(commands=["stop"])
@@ -169,13 +169,13 @@ def send_welcome_registration(msg):
             keyboard.add(
                 InlineKeyboardButton(
                     text="Qizlar",
-                    callback_data=f"finding_1"),
+                    callback_data=f"finding_{Sex.GIRL.value}"),
                 InlineKeyboardButton(
                     text="Yigitlar",
-                    callback_data=f"finding_2"))
+                    callback_data=f"finding_{Sex.BOY.value}"))
             keyboard.add(InlineKeyboardButton(
                 text="Muhim emas",
-                callback_data=f"finding_3"))
+                callback_data=f"finding_{Sex.OTHER.value}"))
             bot.send_message(msg.from_user.id,
                              f"Salom {msg.from_user.first_name}, \n"
                              "Kimlar bilan tanishmoqchisiz?",
